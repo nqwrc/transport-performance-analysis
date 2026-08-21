@@ -1,0 +1,40 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # The oldest version the code targets and the newest one it runs on.
+        python-version: ["3.10", "3.13"]
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - run: pip install -r requirements-dev.txt
+
+      # Tests run first, against the pristine checkout: one of them asserts the
+      # committed data/deliveries.csv is byte-identical to what the generator
+      # produces today, and regenerating before pytest would compare a file
+      # with itself.
+      - name: Tests
+        run: pytest -q
+
+      - name: Pipeline end to end
+        # The quickstart command from the README has to keep working, not just
+        # the function the unit tests call directly. The diff check is the
+        # Linux-side proof of what the byte-equality test asserts on the
+        # runner that actually regenerates: a full run leaves the dataset
+        # untouched.
+        run: |
+          python data/generate_data.py
+          git diff --exit-code data/
