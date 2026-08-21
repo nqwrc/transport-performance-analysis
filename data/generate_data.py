@@ -198,7 +198,11 @@ for week in range(WEEKS):
 
 out = Path(__file__).with_name("deliveries.csv")
 with out.open("w", newline="") as f:
-    writer = csv.DictWriter(f, fieldnames=rows[0].keys())
+    # csv defaults to \r\n on every platform, so without lineterminator the
+    # generator rewrites the committed file with different line endings and
+    # git reports a diff nobody made. The seed makes the data reproducible;
+    # this makes the bytes reproducible too.
+    writer = csv.DictWriter(f, fieldnames=rows[0].keys(), lineterminator="\n")
     writer.writeheader()
     writer.writerows(rows)
 
